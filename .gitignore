@@ -1,0 +1,57 @@
+# Credentials (IMPORTANT - DO NOT COMMIT)
+#kaggle_credentials.json
+kaggle.json
+.kaggle/
+
+# Data (Download on workstation instead)
+panda_data/train_images/
+panda_data/patches_256/
+panda_data/*.zip
+panda_data/*.tiff
+
+# Keep only train.csv for reference
+!panda_data/train.csv
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Generated files
+samples/
+synthetic_data/
+logs/
+*.log
+checkpoints/
+
+# Dataset visualization (can be regenerated)
+dataset_samples.png
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# Temporary files
+*.tmp
+*.bak
+*.orig
