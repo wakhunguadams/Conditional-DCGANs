@@ -1,5 +1,5 @@
 # Credentials (IMPORTANT - DO NOT COMMIT)
-#kaggle_credentials.json
+kaggle_credentials.json
 kaggle.json
 .kaggle/
 
@@ -9,8 +9,9 @@ panda_data/patches_256/
 panda_data/*.zip
 panda_data/*.tiff
 
-# Keep only train.csv for reference
+# Keep only train.csv and download_list.txt for reference
 !panda_data/train.csv
+!panda_data/download_list.txt
 
 # Virtual Environment
 venv/
