@@ -12,6 +12,7 @@ Key Improvements:
 import os
 import random
 import argparse
+import json
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
@@ -469,6 +470,13 @@ def main():
     
     # Resume from checkpoint if specified
     start_epoch = 1
+    history = {
+        'd_loss': [],
+        'g_loss': [],
+        'd_real': [],
+        'd_fake': []
+    }
+    
     if args.resume:
         print(f'Resuming from checkpoint: {args.resume}')
         checkpoint = torch.load(args.resume, map_location=device)
@@ -477,14 +485,16 @@ def main():
         opt_G.load_state_dict(checkpoint['opt_G'])
         opt_D.load_state_dict(checkpoint['opt_D'])
         start_epoch = checkpoint['epoch'] + 1
-    
-    # Training history
-    history = {
-        'd_loss': [],
-        'g_loss': [],
-        'd_real': [],
-        'd_fake': []
-    }
+        
+        # Restore training history if available
+        if 'history' in checkpoint:
+            history = checkpoint['history']
+            print(f'Restored training history: {len(history["d_loss"])} epochs')
+        
+        # Restore schedulers state
+        for _ in range(start_epoch - 1):
+            sched_G.step()
+            sched_D.step()
     
     print(f'\nStarting training for {config.num_epochs} epochs...')
     print(f'Architecture: Simplified CDCGAN v2')
@@ -516,10 +526,18 @@ def main():
             })
         
         # Record epoch metrics
-        history['d_loss'].append(np.mean(d_losses))
-        history['g_loss'].append(np.mean(g_losses))
-        history['d_real'].append(np.mean(d_reals))
-        history['d_fake'].append(np.mean(d_fakes))
+        epoch_d_loss = np.mean(d_losses)
+        epoch_g_loss = np.mean(g_losses)
+        epoch_d_real = np.mean(d_reals)
+        epoch_d_fake = np.mean(d_fakes)
+        
+        history['d_loss'].append(epoch_d_loss)
+        history['g_loss'].append(epoch_g_loss)
+        history['d_real'].append(epoch_d_real)
+        history['d_fake'].append(epoch_d_fake)
+        
+        # Print epoch summary
+        print(f'Epoch {epoch}/{config.num_epochs} - D: {epoch_d_loss:.4f}, G: {epoch_g_loss:.4f}, D(x): {epoch_d_real:.3f}, D(G(z)): {epoch_d_fake:.3f}')
         
         # Step schedulers
         sched_G.step()
@@ -542,10 +560,42 @@ def main():
                 'history': history
             }, checkpoint_path)
             print(f'Saved checkpoint: {checkpoint_path}')
+            
+            # Save metrics to JSON
+            metrics_path = f'{config.checkpoint_dir}/metrics_epoch_{epoch:04d}.json'
+            with open(metrics_path, 'w') as f:
+                json.dump(history, f, indent=2)
+            
+            # Also save latest checkpoint
+            latest_path = f'{config.checkpoint_dir}/ckpt_latest.pt'
+            torch.save({
+                'epoch': epoch,
+                'G': G.state_dict(),
+                'D': D.state_dict(),
+                'opt_G': opt_G.state_dict(),
+                'opt_D': opt_D.state_dict(),
+                'history': history
+            }, latest_path)
     
     # Save final models
     torch.save(G.state_dict(), f'{config.checkpoint_dir}/G_final.pt')
     torch.save(D.state_dict(), f'{config.checkpoint_dir}/D_final.pt')
+    
+    # Save final checkpoint
+    final_checkpoint_path = f'{config.checkpoint_dir}/ckpt_final.pt'
+    torch.save({
+        'epoch': config.num_epochs,
+        'G': G.state_dict(),
+        'D': D.state_dict(),
+        'opt_G': opt_G.state_dict(),
+        'opt_D': opt_D.state_dict(),
+        'history': history
+    }, final_checkpoint_path)
+    
+    # Save final metrics to JSON
+    final_metrics_path = f'{config.checkpoint_dir}/metrics_final.json'
+    with open(final_metrics_path, 'w') as f:
+        json.dump(history, f, indent=2)
     
     # Plot training history
     plot_training_history(history, config)
@@ -553,6 +603,9 @@ def main():
     print('\nTraining complete!')
     print(f'Final metrics - D: {history["d_loss"][-1]:.4f}, G: {history["g_loss"][-1]:.4f}')
     print(f'D(x): {history["d_real"][-1]:.3f}, D(G(z)): {history["d_fake"][-1]:.3f}')
+    print(f'\nCheckpoints saved to: {config.checkpoint_dir}')
+    print(f'Samples saved to: {config.samples_dir}')
+    print(f'Metrics saved to: {final_metrics_path}')
 
 
 if __name__ == '__main__':
