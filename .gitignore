@@ -32,10 +32,14 @@ __pycache__/
 
 # Generated files
 samples/
+samples_v2/
+samples_improved/
 synthetic_data/
 logs/
 *.log
 checkpoints/
+checkpoints_v2/
+checkpoints_improved/
 
 # Dataset visualization (can be regenerated)
 dataset_samples.png
